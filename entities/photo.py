@@ -23,7 +23,7 @@ class Photo(Base):
 
     genero: Mapped[GeneroEnum | None] = mapped_column(SAEnum(GeneroEnum, name="genero_enum"), nullable=True)
     tema: Mapped[str | None] = mapped_column(String(100), nullable=True)
-
+    menor: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
                                                  onupdate=lambda: datetime.now(timezone.utc))

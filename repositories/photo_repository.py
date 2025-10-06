@@ -32,21 +32,13 @@ class PhotoRepository:
         await self.session.flush()
         return photo
 
-    async def set_ia_and_meta(
-            self,
-            photo: Photo,
-            *,
-            ia_url: str,
-            genero: Optional[GeneroEnum] = None,
-            tema: Optional[str] = None
-    ) -> Photo:
+    async def set_ia_and_meta(self, photo: Photo, *, ia_url: str, genero: str | None, tema: str | None,
+                              menor: bool | None = None):
         photo.ia_url = ia_url
-        if genero is not None:
-            photo.genero = genero
-        if tema is not None:
-            photo.tema = tema
-        self.session.add(photo)
-        await self.session.flush()
+        photo.genero = genero
+        photo.tema = tema
+        if menor is not None:
+            photo.menor = menor
         return photo
 
     async def update_fields(self, photo: Photo, *, quantidade: int | None = None, impressa: bool | None = None) -> Photo:

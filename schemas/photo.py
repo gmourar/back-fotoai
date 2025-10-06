@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, Literal
-from entities.photo import GeneroEnum  # <- importe do model
-
+from entities.photo import GeneroEnum
 
 class PhotoBase(BaseModel):
     nome: str = Field(..., examples=["foto1"])
@@ -21,9 +20,9 @@ class PhotoOut(BaseModel):
     ia_url: Optional[HttpUrl] | None
     quantidade: int
     impressa: bool
-    genero: Optional[GeneroEnum] = None   # ✅ NADA de Mapped aqui
+    genero: Optional[GeneroEnum] = None
     tema: Optional[str] = None
-
+    menor: bool
     class Config:
         from_attributes = True  # ok no Pydantic v2
 
@@ -46,3 +45,4 @@ class SaveIARequest(BaseModel):
     image_url: HttpUrl
     genero: Literal["masculino", "feminino"]
     tema: str = Field(min_length=1, max_length=100)
+    menor: Optional[bool] = None

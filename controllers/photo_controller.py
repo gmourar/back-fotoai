@@ -19,11 +19,11 @@ class PhotoController:
     async def update(self, *, photo_id: int, quantidade: int | None, impressa: bool | None) -> Photo:
         return await self.service.update_fields(photo_id=photo_id, quantidade=quantidade, impressa=impressa)
 
-    async def save_ia_by_name(self, *, nome: str, image_url: str):
-        return await self.service.save_ia_from_name(nome=nome, image_url=image_url)
+    async def save_ia_by_name(self, *, nome: str, image_url: str, genero: str | None, tema: str | None,
+                              menor: bool | None = None):
+        return await self.service.save_ia_from_name(
+            nome=nome, image_url=image_url, genero=genero, tema=tema, menor=menor
+        )
 
     async def update_quantidade_by_name(self, *, nome: str, quantidade: int):
         return await self.service.update_quantidade_from_name(nome=nome, quantidade=quantidade)
-
-    async def save_ia_by_name(self, *, nome: str, image_url: str, genero: str | None, tema: str | None):
-        return await self.service.save_ia_from_name(nome=nome, image_url=image_url, genero=genero, tema=tema)

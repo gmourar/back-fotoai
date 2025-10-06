@@ -68,10 +68,12 @@ async def save_ia(nome: str, body: SaveIARequest, session: AsyncSession = Depend
     photo = await ctrl.save_ia_by_name(
         nome=nome,
         image_url=str(body.image_url),
-        genero=GeneroEnum(body.genero),  # converte Literal->Enum (opcional; Pydantic já valida)
+        genero=GeneroEnum(body.genero),
         tema=body.tema,
+        menor=body.menor,
     )
     return photo
+
 
 @router.patch("/{nome}/quantidade", response_model=PhotoOut)
 async def update_quantidade_by_name(

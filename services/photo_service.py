@@ -23,10 +23,7 @@ class PhotoService:
 
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         # novas molduras
-        self.frame_paths = [
-            os.path.join(base_dir, "Moldura1.png"),
-            os.path.join(base_dir, "Moldura2.png"),
-        ]
+        self.frame_path = os.getenv("FRAME1_PATH", os.path.join(base_dir, "Moldura1.png"))
 
     async def _download_bytes(self, url: str) -> bytes:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -36,25 +33,14 @@ class PhotoService:
 
     def _select_frame_path(self, *, nome: str) -> str:
         """
-        Alterna entre Moldura1 e Moldura2 pela paridade do número no 'nome'.
-        Ex.: 'foto1' -> Moldura1, 'foto2' -> Moldura2.
-        Se não encontrar número, cai no índice 0 (Moldura1).
-        """
-        m = re.search(r"(\d+)$", nome)
-        if m:
-            n = int(m.group(1))
-            idx = 0 if (n % 2 == 1) else 1
-        else:
-            idx = 0
-        # fallback se arquivo não existir por algum motivo
-        path = self.frame_paths[idx]
-        if not os.path.exists(path):
-            # tenta a outra; se também não existir, levanta erro claro
-            alt = self.frame_paths[1 - idx]
-            if os.path.exists(alt):
-                return alt
-            raise FileNotFoundError(f"Nenhuma moldura encontrada em {self.frame_paths}")
-        return path
+           Retorna sempre a Moldura1. Levanta erro legível se não existir.
+           """
+        if not os.path.exists(self.frame_path):
+            raise FileNotFoundError(
+                f"Moldura não encontrada em {self.frame_path}. "
+                "Ajuste a variável de ambiente FRAME1_PATH ou coloque o arquivo no caminho esperado."
+            )
+        return self.frame_path
 
     def _apply_local_frame(self, base_bytes: bytes, frame_path: str) -> bytes:
         base = Image.open(io.BytesIO(base_bytes)).convert("RGBA")
@@ -115,7 +101,8 @@ class PhotoService:
         await self.session.commit()
         return photo
 
-    async def save_ia_from_name(self, *, nome: str, image_url: str, genero: str | None = None, tema: str | None = None):
+    async def save_ia_from_name(self, *, nome: str, image_url: str, genero: str | None = None, tema: str | None = None,
+                                menor: bool | None = None):
         photo = await self.repo.get_by_nome(nome)
         if not photo:
             raise ValueError("Photo not found")
@@ -130,7 +117,8 @@ class PhotoService:
             key,
             content_type="image/png"
         )
-        await self.repo.set_ia_and_meta(photo, ia_url=ia_public_url, genero=genero, tema=tema)
+
+        await self.repo.set_ia_and_meta(photo, ia_url=ia_public_url, genero=genero, tema=tema, menor=menor)  # ✅
         await self.session.commit()
         return photo
 
