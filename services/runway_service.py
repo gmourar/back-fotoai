@@ -142,7 +142,7 @@ class RunwayService:
         if self._sdk_cls is not None:
             # Mantemos suporte opcional ao SDK, mas a integração padrão usa HTTP
             self._client = self._sdk_cls(api_key=self.api_key)
-    async def _http_text_to_image(self, *, prompt_text: str, ratio: str, reference_images: Optional[List[Dict[str, str]]]) -> str:
+    async def _http_text_to_image(self, *, prompt_text: str, ratio: str, model: str, reference_images: Optional[List[Dict[str, str]]]) -> str:
         """
         Chama POST /v1/text_to_image da API do Runway e retorna o id da task.
         """
@@ -155,7 +155,7 @@ class RunwayService:
         payload: Dict[str, Any] = {
             "promptText": prompt_text,
             "ratio": ratio,
-            "model": self.model,
+            "model": model,
         }
         if reference_images:
             # Respeita limite de até 3 imagens
@@ -187,17 +187,26 @@ class RunwayService:
         *,
         prompt: str,
         aspect_ratio: Optional[str] = None,
+        exact_ratio: Optional[str] = None,
         s3_url: Optional[str] = None,
         style_ref_url: Optional[str] = None,
         reference_images: Optional[List[Dict[str, str]]] = None,
+        model_override: Optional[str] = None,
     ) -> str:
         """
         Dispara geração com Runway e retorna um task_id interno para acompanhamento.
         - Se `s3_url` e/ou `style_ref_url` vierem, baixa as imagens e inclui como referências.
         - `reference_images`: lista [{"uri": data_uri, "tag": "ref"}, ...].
         """
-        ratio = _map_aspect_ratio_to_runway_ratio(aspect_ratio)
-        ratio = _coerce_ratio_for_model(self.model, ratio)
+        # Escolhe modelo
+        chosen_model = (model_override or self.model).strip()
+
+        # Ratio: se vier exact_ratio, usa direto; senão mapeia aspect_ratio simbólico
+        if exact_ratio and exact_ratio.strip():
+            desired_ratio = exact_ratio.strip()
+        else:
+            desired_ratio = _map_aspect_ratio_to_runway_ratio(aspect_ratio)
+        ratio = _coerce_ratio_for_model(chosen_model, desired_ratio)
 
         refs: List[Dict[str, str]] = []
         if reference_images:
@@ -226,11 +235,11 @@ class RunwayService:
                 prompt = f"{prompt} @ref".strip()
 
         # gen4_image_turbo exige ao menos 1 imagem de referência
-        if self.model == "gen4_image_turbo" and not refs:
+        if chosen_model == "gen4_image_turbo" and not refs:
             raise RuntimeError("O modelo gen4_image_turbo exige ao menos uma imagem de referência.")
 
         # Dispara task via HTTP oficial do Runway
-        task_id = await self._http_text_to_image(prompt_text=prompt, ratio=ratio, reference_images=refs)
+        task_id = await self._http_text_to_image(prompt_text=prompt, ratio=ratio, model=chosen_model, reference_images=refs)
 
         # Armazena estado inicial localmente para o endpoint /progress
         _TASKS[task_id] = {"status": "PENDING", "progress": 0}

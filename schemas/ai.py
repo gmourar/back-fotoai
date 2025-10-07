@@ -1,15 +1,24 @@
 from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List
 
-class GenerateRequest(BaseModel):
-    # Aceita tanto prompt pronto quanto só a URL; se vierem os dois, usa `prompt`.
-    prompt: Optional[str] = Field(default=None, description="Prompt final já com a URL embutida (--cref, etc.)")
-    s3Url: Optional[HttpUrl] = Field(default=None, description="URL pública da imagem no S3")
-    styleRefUrl: Optional[HttpUrl] = Field(default=None, description="URL pública da imagem de referência de estilo")
-    aspect_ratio: str = Field(default="9:16")
+
+class ReferenceImage(BaseModel):
+    # Usa string simples para suportar data URI (data:image/png;base64,...) além de URLs
+    uri: str
+    tag: str = Field(default="ref")
+
+
+class GenerateV2Request(BaseModel):
+    # Novo contrato compatível com a API do Runway
+    promptText: str
+    ratio: str = Field(default="1024:1024")
+    model: Optional[str] = Field(default=None, description="Override do modelo (ex.: gen4_image)")
+    referenceImages: Optional[List[ReferenceImage]] = None
+
 
 class GenerateResponse(BaseModel):
     task_id: str
+
 
 class ProgressResponse(BaseModel):
     progress: int
