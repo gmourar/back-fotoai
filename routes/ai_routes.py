@@ -32,20 +32,21 @@ async def progress(task_id: str):
     api = RunwayService()
     status = await api.fetch_status(task_id)
     if not status:
-        # mantém contrato do seu front: responde 200 com progresso “erro”
+        # Mantém contrato do front: responde 200 com progresso 0
         return ProgressResponse(progress=0)
 
-    # Normaliza progresso (pode vir string)
-    perc = status.get("percentage", 0)
+    # Normaliza progresso (API interna expõe "percentage" [0..100])
+    raw_perc = status.get("percentage") if isinstance(status, dict) else 0
     try:
-        progress = int(perc)
+        progress = int(raw_perc) if raw_perc is not None else 0
     except Exception:
         progress = 0
 
-    # Estados internos: PENDING, RUNNING, SUCCEEDED, FAILED
+    # Estados internos: PENDING, RUNNING, SUCCEEDED, FAILED, THROTTLED
     st = (status.get("status") or "").lower()
     if st in {"pending", "running"}:
-        progress = max(progress, 1 if st == "pending" else 50)
+        # Não force 50%; apenas garanta que nunca fique travado em 0 durante RUNNING
+        progress = max(progress, 1)
     elif st == "succeeded" and "image_urls" in status:
         return ProgressResponse(progress=100, image_urls=status["image_urls"])
     elif st == "failed":
