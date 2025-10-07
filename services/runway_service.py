@@ -250,10 +250,12 @@ class RunwayService:
             async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.get(url, headers=headers)
                 if resp.status_code == 404:
-                    return None
+                    # Mantém cache local se existir, para evitar regressão de progresso
+                    return _TASKS.get(task_id)
                 if resp.status_code == 429:
-                    # Considera como throttled
-                    data = {"status": "THROTTLED", "percentage": 0}
+                    # Considera como THROTTLED mas não zera progresso; preserva cache
+                    cached = _TASKS.get(task_id) or {}
+                    data = {"status": "THROTTLED", "percentage": cached.get("progress", 0)}
                 else:
                     resp.raise_for_status()
                     data = resp.json() or {}
@@ -285,17 +287,23 @@ class RunwayService:
 
         # Atualiza cache em memória para fallback
         try:
-            # status RUNNING -> progresso mínimo 1; PENDING -> 0
-            local_progress = 0
+            # Não permita regressão de progresso em cache
+            cached = _TASKS.get(task_id) or {}
+            cached_progress = int(cached.get("progress", 0)) if isinstance(cached.get("progress", 0), int) else 0
+            local_progress = cached_progress
             st_lower = (str(status_val).lower()) if status_val else ""
             if st_lower == "running":
-                local_progress = max(percentage, 1)
+                local_progress = max(cached_progress, percentage, 1)
             elif st_lower == "succeeded":
                 local_progress = 100
+            elif st_lower in {"pending", "throttled"}:
+                # mantém progresso atual
+                local_progress = max(cached_progress, percentage)
+
             _TASKS[task_id] = {
-                "status": status_val or "PENDING",
+                "status": status_val or cached.get("status", "PENDING"),
                 "progress": local_progress,
-                **({"image_urls": image_urls} if image_urls else {}),
+                **({"image_urls": image_urls} if image_urls else ( {"image_urls": cached.get("image_urls")} if cached.get("image_urls") else {})),
             }
         except Exception:
             pass
