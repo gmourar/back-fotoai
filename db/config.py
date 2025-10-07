@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     APIFRAME_IMAGINE_BASE: str = "https://api.apiframe.ai/pro"
     APIFRAME_FETCH_BASE: str = "https://api.apiframe.pro"
 
+    # Runway
+    RUNWAY_API_KEY: str = "changeme"
+    RUNWAY_BASE_URL: str = "https://api.runwayml.com/v1"
+    RUNWAY_MODEL: str = "gen4_image"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
 settings = Settings()

@@ -8,7 +8,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
 from repositories.photo_repository import PhotoRepository
-from services.apiframe_service import ApiframeService
+from services.runway_service import RunwayService
 from services.storage_service import StorageService
 from services.image_gen_service import ImageGenService
 from entities.photo import Photo
@@ -19,7 +19,7 @@ class PhotoService:
         self.repo = PhotoRepository(session)
         self.storage = StorageService()
         self.image_gen = ImageGenService()
-        self.ai = ApiframeService()
+        self.ai = RunwayService()
 
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         # novas molduras
@@ -82,7 +82,8 @@ class PhotoService:
             raise ValueError("Photo not found")
 
         task_id = await self.ai.imagine(prompt=prompt, aspect_ratio=aspect_ratio)
-        image_url = await self.ai.monitor_until_ready(task_id)
+        images = await self.ai.monitor_until_ready(task_id)
+        image_url = images[0] if images else None
         if not image_url:
             raise RuntimeError("Falha ao gerar imagem IA")
 
