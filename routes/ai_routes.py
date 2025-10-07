@@ -21,6 +21,7 @@ async def generate(body: GenerateRequest):
             prompt=prompt,
             aspect_ratio=body.aspect_ratio,
             s3_url=(str(body.s3Url) if body.s3Url else None),
+            style_ref_url=(str(body.styleRefUrl) if getattr(body, "styleRefUrl", None) else None),
         )
         return GenerateResponse(task_id=task_id)
     except Exception as e:

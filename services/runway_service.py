@@ -133,11 +133,12 @@ class RunwayService:
         prompt: str,
         aspect_ratio: Optional[str] = None,
         s3_url: Optional[str] = None,
+        style_ref_url: Optional[str] = None,
         reference_images: Optional[List[Dict[str, str]]] = None,
     ) -> str:
         """
         Dispara geração com Runway e retorna um task_id interno para acompanhamento.
-        - Se `s3_url` vier, baixa a imagem e inclui como referência.
+        - Se `s3_url` e/ou `style_ref_url` vierem, baixa as imagens e inclui como referências.
         - `reference_images`: lista [{"uri": data_uri, "tag": "ref"}, ...].
         """
         ratio = _map_aspect_ratio_to_runway_ratio(aspect_ratio)
@@ -145,17 +146,28 @@ class RunwayService:
         refs: List[Dict[str, str]] = []
         if reference_images:
             refs = reference_images
-        elif s3_url:
-            try:
-                bytes_img, content_type = await _download_bytes(s3_url)
-                # Converte para data URI; Runway não aceita URL pública diretamente
-                data_uri = _image_bytes_to_data_uri(bytes_img, content_type)
-                refs.append({"uri": data_uri, "tag": "ref"})
-                # Garante que o prompt referencia a tag, caso não possua
-                if "@ref" not in prompt:
-                    prompt = f"{prompt} @ref".strip()
-            except Exception as e:
-                logger.warning("Falha ao baixar s3_url para referência: %s", e)
+        else:
+            # Adiciona foto do usuário, se fornecida
+            if s3_url:
+                try:
+                    bytes_img, content_type = await _download_bytes(s3_url)
+                    data_uri = _image_bytes_to_data_uri(bytes_img, content_type)
+                    refs.append({"uri": data_uri, "tag": "ref"})
+                except Exception as e:
+                    logger.warning("Falha ao baixar s3_url para referência: %s", e)
+
+            # Adiciona referência de estilo, se fornecida
+            if style_ref_url:
+                try:
+                    bytes_img, content_type = await _download_bytes(style_ref_url)
+                    data_uri = _image_bytes_to_data_uri(bytes_img, content_type)
+                    refs.append({"uri": data_uri, "tag": "ref"})
+                except Exception as e:
+                    logger.warning("Falha ao baixar style_ref_url para referência: %s", e)
+
+            # Garante que o prompt referencia a tag ao menos uma vez, se houver refs
+            if refs and "@ref" not in prompt:
+                prompt = f"{prompt} @ref".strip()
 
         task_id = uuid.uuid4().hex
         _TASKS[task_id] = {"status": "PENDING", "progress": 0}
