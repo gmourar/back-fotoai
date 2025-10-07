@@ -11,7 +11,7 @@ class ReferenceImage(BaseModel):
 class GenerateV2Request(BaseModel):
     # Novo contrato compatível com a API do Runway
     promptText: str
-    ratio: str = Field(default="1024:1024")
+    ratio: str = Field(default="1080:1920")
     model: Optional[str] = Field(default=None, description="Override do modelo (ex.: gen4_image)")
     referenceImages: Optional[List[ReferenceImage]] = None
 
