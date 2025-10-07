@@ -158,8 +158,8 @@ class RunwayService:
             "model": model,
         }
         if reference_images:
-            # Respeita limite de até 3 imagens
-            payload["referenceImages"] = reference_images[:3]
+            # Envia exatamente como recebido (sem conversão para data URI)
+            payload["referenceImages"] = reference_images
 
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(url, headers=headers, json=payload)
@@ -201,12 +201,12 @@ class RunwayService:
         # Escolhe modelo
         chosen_model = (model_override or self.model).strip()
 
-        # Ratio: se vier exact_ratio, usa direto; senão mapeia aspect_ratio simbólico
+        # Ratio: se vier exact_ratio, usa exatamente como recebido; caso contrário, mapeia e coerce
         if exact_ratio and exact_ratio.strip():
-            desired_ratio = exact_ratio.strip()
+            ratio = exact_ratio.strip()
         else:
             desired_ratio = _map_aspect_ratio_to_runway_ratio(aspect_ratio)
-        ratio = _coerce_ratio_for_model(chosen_model, desired_ratio)
+            ratio = _coerce_ratio_for_model(chosen_model, desired_ratio)
 
         refs: List[Dict[str, str]] = []
         if reference_images:
