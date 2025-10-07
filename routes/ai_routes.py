@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from schemas.ai import GenerateRequest, GenerateResponse, ProgressResponse
 from services.runway_service import RunwayService
 
-router = APIRouter(tags=["ai"])
+router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(body: GenerateRequest):
